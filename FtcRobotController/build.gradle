@@ -6,8 +6,8 @@ import java.text.SimpleDateFormat
 apply plugin: 'com.android.library'
 
 android {
+
     defaultConfig {
-        compileSdk 35
         minSdkVersion 24
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 28
@@ -17,6 +17,8 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    compileSdkVersion 30
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8

@@ -73,6 +73,37 @@ public class straferSummer2025 extends LinearOpMode {
                     imu.resetYaw();
                 }
 
+                if (gamepad1.a) {
+                    telemetry.addData("a is pressed","");
+                    double tgtDistance = 4;
+                    double allowedError = 1;
+                    double motorPower = 0.3;
+                    while (true){
+                        double leftDistance = backLeftDistance.getDistance(DistanceUnit.INCH);
+                        double rightDistance = backRightDistance.getDistance(DistanceUnit.INCH);
+                        double avgDistance = (leftDistance + rightDistance)/2;
+                        if (avgDistance>tgtDistance+allowedError) {
+                            frontLeft.setPower(-motorPower);
+                            backLeft.setPower(-motorPower);
+                            frontRight.setPower(-motorPower);
+                            backRight.setPower(-motorPower);
+                        } else if (avgDistance<tgtDistance-allowedError) {
+                            frontLeft.setPower(motorPower);
+                            backLeft.setPower(motorPower);
+                            frontRight.setPower(motorPower);
+                            backRight.setPower(motorPower);
+                        }
+                        else {
+                            frontLeft.setPower(0);
+                            backLeft.setPower(0);
+                            frontRight.setPower(0);
+                            backRight.setPower(0);
+                            break;
+                        }
+
+                    }
+                }
+
                 double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
 
                 telemetry.addData("bot heading", botHeading);

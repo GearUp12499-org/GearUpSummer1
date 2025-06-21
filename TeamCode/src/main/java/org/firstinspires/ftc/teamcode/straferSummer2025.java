@@ -5,9 +5,11 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 
 @TeleOp
@@ -46,11 +48,23 @@ public class straferSummer2025 extends LinearOpMode {
             // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
             imu.initialize(parameters);
 
+            DistanceSensor backRightDistance;
+            DistanceSensor backLeftDistance;
+
+            backRightDistance = hardwareMap.get(DistanceSensor.class, "backRightDistance");
+            backLeftDistance = hardwareMap.get(DistanceSensor.class, "backLeftDistance");
+
+
             waitForStart();
 
             if (isStopRequested()) return;
 
             while (opModeIsActive()) {
+
+                telemetry.addData("right range", backRightDistance.getDistance(DistanceUnit.INCH));
+                telemetry.addData("left range", backLeftDistance.getDistance(DistanceUnit.INCH));
+
+
                 double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
                 double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
                 double rx = gamepad1.right_stick_x;

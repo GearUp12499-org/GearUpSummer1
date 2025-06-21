@@ -82,12 +82,13 @@ public class straferSummer2025 extends LinearOpMode {
                         double leftDistance = backLeftDistance.getDistance(DistanceUnit.INCH);
                         double rightDistance = backRightDistance.getDistance(DistanceUnit.INCH);
                         double avgDistance = (leftDistance + rightDistance)/2;
-                        if (avgDistance>tgtDistance+allowedError) {
+                        double error = avgDistance-tgtDistance;
+                        if (error>allowedError) {
                             frontLeft.setPower(-motorPower);
                             backLeft.setPower(-motorPower);
                             frontRight.setPower(-motorPower);
                             backRight.setPower(-motorPower);
-                        } else if (avgDistance<tgtDistance-allowedError) {
+                        } else if (error<-allowedError) {
                             frontLeft.setPower(motorPower);
                             backLeft.setPower(motorPower);
                             frontRight.setPower(motorPower);

@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -24,7 +25,7 @@ public class straferSummer2025 extends LinearOpMode {
             hardwareMap.dcMotor.get("backRight").setPower(pBR);
         }
 
-        private void setMotorDefault() {
+        private void setHardware() {
             hardwareMap.dcMotor.get("frontLeft").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             hardwareMap.dcMotor.get("backLeft").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             hardwareMap.dcMotor.get("frontRight").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -34,6 +35,14 @@ public class straferSummer2025 extends LinearOpMode {
             hardwareMap.dcMotor.get("backLeft").setDirection(DcMotorSimple.Direction.REVERSE);
             hardwareMap.dcMotor.get("frontRight").setDirection(DcMotorSimple.Direction.FORWARD);
             hardwareMap.dcMotor.get("backRight").setDirection(DcMotorSimple.Direction.FORWARD);
+
+
+        }
+
+        private Servo initializeServo(){
+            Servo servo = hardwareMap.servo.get("claw");
+            servo.setPosition(0.35);
+            return(servo);
         }
 
         private IMU initializeIMU(){
@@ -52,9 +61,11 @@ public class straferSummer2025 extends LinearOpMode {
     @Override
         public void runOpMode() throws InterruptedException {
 
-            setMotorDefault();
+            setHardware();
 
             IMU imu=initializeIMU();
+
+            Servo servo = initializeServo();
 
             DistanceSensor  backRightDistance = hardwareMap.get(DistanceSensor.class, "backRightDistance");
             DistanceSensor  backLeftDistance = hardwareMap.get(DistanceSensor.class, "backLeftDistance");
@@ -73,6 +84,9 @@ public class straferSummer2025 extends LinearOpMode {
             final double k_i = 0; //change later
             final double k_d = 0; //change later
             final double max_i = 1; //change later
+
+            final double open_pos = 0.35;
+            final double close_pos = 0.2;
 
             ElapsedTime runtime = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
             runtime.reset();
@@ -125,7 +139,12 @@ public class straferSummer2025 extends LinearOpMode {
 
                 } else if (gamepad1.options) {
                     imu.resetYaw();
-                } else {
+                } else if (gamepad1.b) {
+                    servo.setPosition(open_pos);
+                } else if (gamepad1.x) {
+                    servo.setPosition(close_pos);
+                }
+                else {
                     double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
                     double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
                     double rx = gamepad1.right_stick_x;

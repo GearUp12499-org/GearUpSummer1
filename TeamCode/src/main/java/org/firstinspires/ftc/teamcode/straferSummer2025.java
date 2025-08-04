@@ -75,17 +75,17 @@ public class straferSummer2025 extends LinearOpMode {
 
         if (isStopRequested()) return;
 
-        final double tgtDistance = 4;
+        final double tgtDistance = 6;
         //        final double allowedError = 1;
         double motorPower = 0;
         double i = 0;
         double previous_error = 0;
         double prev_time = 0;
         final double k_p = 0.05; //change later
-        final double k_i = 0; //change later
+        final double k_i = 0.0025; //change later
         final double k_d = 0; //change later
-        final double max_i = 1; //change later
-        double maxPower = 1;
+        final double max_i = 0.3; //change later
+        double maxPower = 0.5;
         double delta_time = 0;
 
         final double openPos = 0.35;
@@ -98,11 +98,9 @@ public class straferSummer2025 extends LinearOpMode {
 
             double current_time = runtime.time();
 
-            double leftDistance = backLeftDistance.getDistance(DistanceUnit.INCH);
-            double rightDistance = backRightDistance.getDistance(DistanceUnit.INCH);
 
-            telemetry.addData("left range", leftDistance);
-            telemetry.addData("right range", rightDistance);
+
+
 
             double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
 
@@ -111,15 +109,27 @@ public class straferSummer2025 extends LinearOpMode {
 
             if (gamepad1.a) {
                 double startTime = runtime.time();
-                while (current_time - startTime < 3) {
-                    telemetry.addData("a is pressed", "");
+                while (current_time - startTime < 10000) {
+                    double leftDistance = backLeftDistance.getDistance(DistanceUnit.INCH);
+                    double rightDistance = backRightDistance.getDistance(DistanceUnit.INCH);
+
+                    telemetry.addData("left range", leftDistance);
+                    telemetry.addData("right range", rightDistance);
+
 
                     delta_time = current_time - prev_time;
                     double avgDistance = (leftDistance + rightDistance) / 2;
                     double current_error = avgDistance - tgtDistance;
 
+                    telemetry.addData("current_error", current_error);
+
                     double p = k_p * current_error;
                     i += k_i * (current_error * (delta_time));
+
+                    if (Math.abs(current_error)>2){
+                        i=0;
+                    }
+                    telemetry.addData("i value", i);
 
                     if (i > max_i) {
                         i = max_i;
@@ -129,7 +139,8 @@ public class straferSummer2025 extends LinearOpMode {
 
                     double d = k_d * (current_error - previous_error) / delta_time;
 
-                    motorPower = p + i + d;
+
+                    motorPower = -(p + i + d);
 
                     if (motorPower > maxPower) {
                         motorPower = maxPower;
@@ -142,6 +153,7 @@ public class straferSummer2025 extends LinearOpMode {
                     prev_time = current_time;
                     current_time = runtime.time();
 
+                    telemetry.update();
                     //                    if (error > allowedError) {
                     //                        setMotorPower(-motorPower,-motorPower,-motorPower,-motorPower);
                     //                    } else if (error < -allowedError) {

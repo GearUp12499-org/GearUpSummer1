@@ -88,6 +88,7 @@ public class straferSummer2025 extends LinearOpMode {
         double maxPower = 0.5;
         double delta_time = 0;
 
+
         final double openPos = 0.35;
         final double closePos = 0.2;
 

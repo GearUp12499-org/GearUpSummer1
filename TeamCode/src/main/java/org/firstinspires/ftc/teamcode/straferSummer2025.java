@@ -57,12 +57,17 @@ public class straferSummer2025 extends LinearOpMode {
             return imu;
         }
 
+        private DcMotor frontLeft = null;
+        private DcMotor frontRight = null;
+
+        private DcMotor backLeft = null;
+        private  DcMotor backRight = null;
 
 
     @Override
         public void runOpMode() throws InterruptedException {
 
-        setHardware();
+//        setHardware();
 
         IMU imu = initializeIMU();
 
@@ -70,6 +75,31 @@ public class straferSummer2025 extends LinearOpMode {
 
         DistanceSensor backRightDistance = hardwareMap.get(DistanceSensor.class, "backRightDistance");
         DistanceSensor backLeftDistance = hardwareMap.get(DistanceSensor.class, "backLeftDistance");
+
+        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
+        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
+        backRight = hardwareMap.get(DcMotor.class, "backRight");
+
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+
+
+        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        telemetry.addData("Starting at",  "%7d :%7d",
+                frontLeft.getCurrentPosition(),
+                frontRight.getCurrentPosition());
+        telemetry.update();
 
         waitForStart();
 
@@ -100,7 +130,9 @@ public class straferSummer2025 extends LinearOpMode {
             double current_time = runtime.time();
 
 
-
+            telemetry.addData("Starting at",  "%7d :%7d",
+                    frontLeft.getCurrentPosition(),
+                    frontRight.getCurrentPosition());
 
 
             double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);

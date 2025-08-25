@@ -40,6 +40,32 @@ public class straferSummer2025 extends LinearOpMode {
 
         }
 
+        public static final double inchToTick = 45.6;
+
+        private void driveForward(double forwardIN){
+            int startingTicks = (frontLeft.getCurrentPosition()+frontRight.getCurrentPosition())/2;
+            //537.7 ticks/rotation, wheel diameter 3.75 inches
+            //(547.7 ticks/rotation)*(1 rotation/pi*3.75 inches) = 45.6 ticks/inch
+            int deltaTicks = (int) (forwardIN * inchToTick);
+            int tgtTicks = startingTicks+deltaTicks;
+            while (true){
+                int currentError = (frontLeft.getCurrentPosition()+frontRight.getCurrentPosition())/2-tgtTicks;
+                if (currentError<-45){
+                    setMotorPower(0.3,0.3,0.3,0.3);
+                }
+                else if (currentError>45){
+                    setMotorPower(-0.3,-0.3,-0.3,-0.3);
+                }
+                else {
+                    break;
+                }
+
+            }
+
+
+        }
+
+
         private Servo initializeServo(){
             Servo servo = hardwareMap.servo.get("claw");
             servo.setPosition(0.35);
@@ -141,58 +167,59 @@ public class straferSummer2025 extends LinearOpMode {
 
 
             if (gamepad1.a) {
-                double startTime = runtime.time();
-                while (current_time - startTime < 10000) {
-                    double leftDistance = backLeftDistance.getDistance(DistanceUnit.INCH);
-                    double rightDistance = backRightDistance.getDistance(DistanceUnit.INCH);
+                driveForward(48);
+//                double startTime = runtime.time();
+//                while (current_time - startTime < 10000) {
+//                    double leftDistance = backLeftDistance.getDistance(DistanceUnit.INCH);
+//                    double rightDistance = backRightDistance.getDistance(DistanceUnit.INCH);
+//
+//                    telemetry.addData("left range", leftDistance);
+//                    telemetry.addData("right range", rightDistance);
+//
+//
+//                    delta_time = current_time - prev_time;
+//                    double avgDistance = (leftDistance + rightDistance) / 2;
+//                    double current_error = avgDistance - tgtDistance;
+//
+//                    telemetry.addData("current_error", current_error);
+//
+//                    double p = k_p * current_error;
+//                    i += k_i * (current_error * (delta_time));
+//
+//                    if (Math.abs(current_error)>2){
+//                        i=0;
+//                    }
+//                    telemetry.addData("i value", i);
+//
+//                    if (i > max_i) {
+//                        i = max_i;
+//                    } else if (i < -max_i) {
+//                        i = -max_i;
+//                    }
+//
+//                    double d = k_d * (current_error - previous_error) / delta_time;
+//
+//
+//                    motorPower = -(p + i + d);
+//
+//                    if (motorPower > maxPower) {
+//                        motorPower = maxPower;
+//                    } else if (motorPower < -(maxPower)) {
+//                        motorPower = -maxPower;
+//                    }
+//                    setMotorPower(motorPower, motorPower, motorPower, motorPower);
+//
+//                    previous_error = current_error;
+//                    prev_time = current_time;
+//                    current_time = runtime.time();
+//
+//                    telemetry.update();
+//                    //                    if (error > allowedError) {
+//                    //                        setMotorPower(-motorPower,-motorPower,-motorPower,-motorPower);
+//                    //                    } else if (error < -allowedError) {
+//                    //                        setMotorPower(motorPower,motorPower,motorPower,motorPower);
+//                    //                    }
 
-                    telemetry.addData("left range", leftDistance);
-                    telemetry.addData("right range", rightDistance);
-
-
-                    delta_time = current_time - prev_time;
-                    double avgDistance = (leftDistance + rightDistance) / 2;
-                    double current_error = avgDistance - tgtDistance;
-
-                    telemetry.addData("current_error", current_error);
-
-                    double p = k_p * current_error;
-                    i += k_i * (current_error * (delta_time));
-
-                    if (Math.abs(current_error)>2){
-                        i=0;
-                    }
-                    telemetry.addData("i value", i);
-
-                    if (i > max_i) {
-                        i = max_i;
-                    } else if (i < -max_i) {
-                        i = -max_i;
-                    }
-
-                    double d = k_d * (current_error - previous_error) / delta_time;
-
-
-                    motorPower = -(p + i + d);
-
-                    if (motorPower > maxPower) {
-                        motorPower = maxPower;
-                    } else if (motorPower < -(maxPower)) {
-                        motorPower = -maxPower;
-                    }
-                    setMotorPower(motorPower, motorPower, motorPower, motorPower);
-
-                    previous_error = current_error;
-                    prev_time = current_time;
-                    current_time = runtime.time();
-
-                    telemetry.update();
-                    //                    if (error > allowedError) {
-                    //                        setMotorPower(-motorPower,-motorPower,-motorPower,-motorPower);
-                    //                    } else if (error < -allowedError) {
-                    //                        setMotorPower(motorPower,motorPower,motorPower,motorPower);
-                    //                    }
-                }
             } else if (gamepad1.options) {
                 imu.resetYaw();
             } else if (gamepad1.b) {

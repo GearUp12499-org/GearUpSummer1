@@ -14,41 +14,143 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 
 @TeleOp
 
 public class straferSummer2025 extends LinearOpMode {
-        private void setMotorPower( double pFL, double pBL, double pFR, double pBR){
+
+    private final DcMotor frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
+    private final DcMotor frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+
+    private final DcMotor backLeft = hardwareMap.get(DcMotor.class, "backLeft");
+    private final DcMotor backRight = hardwareMap.get(DcMotor.class, "backRight");
+
+    private final DistanceSensor backRightDistance = hardwareMap.get(DistanceSensor.class, "backRightDistance");
+    private final DistanceSensor backLeftDistance = hardwareMap.get(DistanceSensor.class, "backLeftDistance");
+
+    private final ElapsedTime runtime = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+
+
+
+    private void setMotorPower( final double pFL, final double pBL, final double pFR, final double pBR){
             hardwareMap.dcMotor.get("frontLeft").setPower(pFL);
             hardwareMap.dcMotor.get("backLeft").setPower(pBL);
             hardwareMap.dcMotor.get("frontRight").setPower(pFR);
             hardwareMap.dcMotor.get("backRight").setPower(pBR);
         }
 
-        private void setHardware() {
-            hardwareMap.dcMotor.get("frontLeft").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            hardwareMap.dcMotor.get("backLeft").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            hardwareMap.dcMotor.get("frontRight").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            hardwareMap.dcMotor.get("backRight").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+    private void setHardware() {
 
-            hardwareMap.dcMotor.get("frontLeft").setDirection(DcMotorSimple.Direction.REVERSE);
-            hardwareMap.dcMotor.get("backLeft").setDirection(DcMotorSimple.Direction.REVERSE);
-            hardwareMap.dcMotor.get("frontRight").setDirection(DcMotorSimple.Direction.FORWARD);
-            hardwareMap.dcMotor.get("backRight").setDirection(DcMotorSimple.Direction.FORWARD);
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
+        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+    }
 
 
+    private Servo initializeServo(){
+        Servo servo = hardwareMap.servo.get("claw");
+        servo.setPosition(0.35);
+        return(servo);
+    }
+
+    private IMU initializeIMU(){
+        IMU imu = hardwareMap.get(IMU.class, "imu");
+        // Adjust the orientation parameters to match your robot
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.UP,
+                RevHubOrientationOnRobot.UsbFacingDirection.LEFT));
+        // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
+        imu.initialize(parameters);
+        return imu;
+    }
+
+
+
+
+    private void distanceSensorDriveBack(double tgtDistanceFromObject) {
+
+            double motorPower = 0;
+            double i = 0;
+            double previous_error = 0;
+            final double k_p = 0.05; //change later
+            final double k_i = 0.0025; //change later
+            final double k_d = 0; //change later
+            final double max_i = 0.3; //change later
+            final double maxPower = 0.5;
+
+
+            double current_time = runtime.time();
+            double startTime = current_time;
+            double prev_time = current_time;
+
+            double delta_time = 0;
+
+
+            while (current_time - startTime < 10000) {
+
+                double leftDistance = backLeftDistance.getDistance(DistanceUnit.INCH);
+                double rightDistance = backRightDistance.getDistance(DistanceUnit.INCH);
+
+                double avgDistance = (leftDistance + rightDistance) / 2;
+                double current_error = avgDistance - tgtDistanceFromObject;
+
+
+                telemetry.addData("left range", leftDistance);
+                telemetry.addData("right range", rightDistance);
+                telemetry.addData("current_error", current_error);
+
+
+                current_time = runtime.time();
+                delta_time = current_time - prev_time;
+
+                telemetry.addData("loop time",delta_time);
+
+
+                double p = k_p * current_error;
+                i += k_i * (current_error * (delta_time));
+
+                if (Math.abs(current_error) > 2) {
+                    i = 0;
+                }
+                telemetry.addData("i value", i);
+
+                if (i > max_i) {
+                    i = max_i;
+                } else if (i < -max_i) {
+                    i = -max_i;
+                }
+
+                double d = k_d * (current_error - previous_error) / delta_time;
+
+                motorPower = -(p + i + d);
+
+                if (motorPower > maxPower) {
+                    motorPower = maxPower;
+                } else if (motorPower < -(maxPower)) {
+                    motorPower = -maxPower;
+                }
+                setMotorPower(motorPower, motorPower, motorPower, motorPower);
+
+                previous_error = current_error;
+                prev_time = current_time;
+
+                telemetry.update();
+            }
+            setMotorPower(0,0,0,0);
         }
 
-        public static final double inchToTick = 45.6;
-
-        public final ElapsedTime runtime = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
+        public static final double inchToTick = 537.7/(3.14159265358*3.75);
 
 
-
-
-
-    private void driveForward(double forwardIN){
+        private void encoderDriveForward(double forwardIN){
             int startingTicks = (frontLeft.getCurrentPosition()+frontRight.getCurrentPosition())/2;
             //537.7 ticks/rotation, wheel diameter 3.75 inches
             //(547.7 ticks/rotation)*(1 rotation/pi*3.75 inches) = 45.6 ticks/inch
@@ -124,59 +226,19 @@ public class straferSummer2025 extends LinearOpMode {
 
 
 
-        private Servo initializeServo(){
-            Servo servo = hardwareMap.servo.get("claw");
-            servo.setPosition(0.35);
-            return(servo);
-        }
-
-        private IMU initializeIMU(){
-            IMU imu = hardwareMap.get(IMU.class, "imu");
-            // Adjust the orientation parameters to match your robot
-            IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
-                    RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                    RevHubOrientationOnRobot.UsbFacingDirection.LEFT));
-            // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
-            imu.initialize(parameters);
-            return imu;
-        }
-
-        private DcMotor frontLeft = null;
-        private DcMotor frontRight = null;
-
-        private DcMotor backLeft = null;
-        private  DcMotor backRight = null;
 
 
 
-
-
-    @Override
+        @Override
         public void runOpMode() throws InterruptedException {
 
-    //        setHardware();
+            setHardware();
 
             IMU imu = initializeIMU();
 
             Servo servo = initializeServo();
 
-    //        DistanceSensor backRightDistance = hardwareMap.get(DistanceSensor.class, "backRightDistance");
-    //        DistanceSensor backLeftDistance = hardwareMap.get(DistanceSensor.class, "backLeftDistance");
-
-            frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
-            frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-            backLeft = hardwareMap.get(DcMotor.class, "backLeft");
-            backRight = hardwareMap.get(DcMotor.class, "backRight");
-
-            frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-            frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-            backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-
-
+            //initialize motor encoders,
             frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
@@ -192,25 +254,12 @@ public class straferSummer2025 extends LinearOpMode {
 
             if (isStopRequested()) return;
 
-            final double tgtDistance = 6;
-            //        final double allowedError = 1;
-            double motorPower = 0;
-            double i = 0;
-            double previous_error = 0;
-            double prev_time = 0;
-            final double k_p = 0.05; //change later
-            final double k_i = 0.0025; //change later
-            final double k_d = 0; //change later
-            final double max_i = 0.3; //change later
-            double maxPower = 0.5;
-            double delta_time = 0;
-
 
             final double openPos = 0.35;
             final double closePos = 0.2;
 
             runtime.reset();
-            double period = 100;//time in millisecond
+//            double period = 100;//time in millisecond
             while (opModeIsActive()) {
 
 
@@ -227,59 +276,9 @@ public class straferSummer2025 extends LinearOpMode {
 
 
                 if (gamepad1.a) {
-                    driveForward(48);
-    //                double startTime = runtime.time();
-    //                while (current_time - startTime < 10000) {
-    //                    double leftDistance = backLeftDistance.getDistance(DistanceUnit.INCH);
-    //                    double rightDistance = backRightDistance.getDistance(DistanceUnit.INCH);
-    //
-    //                    telemetry.addData("left range", leftDistance);
-    //                    telemetry.addData("right range", rightDistance);
-    //
-    //
-    //                    delta_time = current_time - prev_time;
-    //                    double avgDistance = (leftDistance + rightDistance) / 2;
-    //                    double current_error = avgDistance - tgtDistance;
-    //
-    //                    telemetry.addData("current_error", current_error);
-    //
-    //                    double p = k_p * current_error;
-    //                    i += k_i * (current_error * (delta_time));
-    //
-    //                    if (Math.abs(current_error)>2){
-    //                        i=0;
-    //                    }
-    //                    telemetry.addData("i value", i);
-    //
-    //                    if (i > max_i) {
-    //                        i = max_i;
-    //                    } else if (i < -max_i) {
-    //                        i = -max_i;
-    //                    }
-    //
-    //                    double d = k_d * (current_error - previous_error) / delta_time;
-    //
-    //
-    //                    motorPower = -(p + i + d);
-    //
-    //                    if (motorPower > maxPower) {
-    //                        motorPower = maxPower;
-    //                    } else if (motorPower < -(maxPower)) {
-    //                        motorPower = -maxPower;
-    //                    }
-    //                    setMotorPower(motorPower, motorPower, motorPower, motorPower);
-    //
-    //                    previous_error = current_error;
-    //                    prev_time = current_time;
-    //                    current_time = runtime.time();
-    //
-    //                    telemetry.update();
-    //                    //                    if (error > allowedError) {
-    //                    //                        setMotorPower(-motorPower,-motorPower,-motorPower,-motorPower);
-    //                    //                    } else if (error < -allowedError) {
-    //                    //                        setMotorPower(motorPower,motorPower,motorPower,motorPower);
-    //                    //                    }
-
+                    encoderDriveForward(48);
+                } else if (gamepad1.y) {
+                    distanceSensorDriveBack(12);
                 } else if (gamepad1.options) {
                     imu.resetYaw();
                 } else if (gamepad1.b) {

@@ -82,7 +82,7 @@ public class straferSummer2025 extends LinearOpMode {
             double startTime = current_time;
             double prev_time = current_time;
 
-            double delta_time = 0;
+            double deltaTime = 0;
 
 
             while (current_time - startTime < 10000) {
@@ -100,13 +100,13 @@ public class straferSummer2025 extends LinearOpMode {
 
 
                 current_time = runtime.time();
-                delta_time = current_time - prev_time;
+                deltaTime = current_time - prev_time;
 
-                telemetry.addData("loop time",delta_time);
+                telemetry.addData("loop time",deltaTime);
 
 
                 double p = k_p * current_error;
-                i += k_i * (current_error * (delta_time));
+                i += k_i * (current_error * (deltaTime));
 
                 if (Math.abs(current_error) > 2) {
                     i = 0;
@@ -119,7 +119,7 @@ public class straferSummer2025 extends LinearOpMode {
                     i = -max_i;
                 }
 
-                double d = k_d * (current_error - previous_error) / delta_time;
+                double d = k_d * (current_error - previous_error) / deltaTime;
 
                 motorPower = -(p + i + d);
 
@@ -154,18 +154,21 @@ public class straferSummer2025 extends LinearOpMode {
 //            double i = 0;
 //            double k_i = 0;
 //            double max_i = 0;
-//            double k_d = 0;
-            final double maxPower = 0.7;
+            double k_d = 0.11;
+            final double maxPower = 1;
             double current_time = runtime.time();
-//            int prevError = (startingTicks-tgtTicks)/2;
+            int prevError = (startingTicks-tgtTicks)/2;
             double prevMotorPower = 1;
             double prevTime = runtime.time();
             final double allowedError = 100;
             int atTgtCounter = 0;
+            double avgLoopTime = 0;
+            double totalLoopTime = 0;
+            int loopCounter = 0;
 
             while (true){
-//                current_time = runtime.time();
-//                double delta_time = current_time - prevTime;
+                current_time = runtime.time();
+                double deltaTime = current_time - prevTime;
 //                int currentError = (frontLeft.getCurrentPosition()+frontRight.getCurrentPosition())/2-tgtTicks;
                 int currentError = -backRight.getCurrentPosition()-tgtTicks;
 
@@ -185,7 +188,7 @@ public class straferSummer2025 extends LinearOpMode {
 
 
                 double p = k_p * currentError;
-//                    i += k_i * (currentError * (delta_time));
+//                    i += k_i * (currentError * (deltaTime));
 //
 //                    if (Math.abs(currentError)>270){
 //                        i=0;
@@ -198,9 +201,9 @@ public class straferSummer2025 extends LinearOpMode {
 //                        i = -max_i;
 //                    }
 //
-//                    double d = k_d * (currentError - previous_error) / delta_time;
+                    double d = k_d * (currentError - prevError) / deltaTime;
 
-                    double motorPower = -(p);
+                    double motorPower = -(p+d);
 
                     if (motorPower > maxPower) {
                         motorPower = maxPower;
@@ -209,15 +212,21 @@ public class straferSummer2025 extends LinearOpMode {
                     }
                     setMotorPower(motorPower, motorPower, motorPower, motorPower);
 
-//                    prevError = currentError;
-//                    prevTime = current_time;
+                    prevError = currentError;
+                    prevTime = current_time;
                     prevMotorPower = motorPower;
 
                     telemetry.addData("absolute value current error", Math.abs(currentError));
                     telemetry.addData("prev power", prevMotorPower);
                     telemetry.addData("target ticks", tgtTicks);
                     telemetry.addData("current ticks",-backRight.getCurrentPosition());
+                    telemetry.addData("loop time", deltaTime);
+                    telemetry.addData("d value", d);
                     telemetry.update();
+
+                    totalLoopTime += deltaTime;
+                    loopCounter += 1;
+
 
 
 //                if (currentError<-45){
@@ -232,6 +241,7 @@ public class straferSummer2025 extends LinearOpMode {
             setMotorPower(0,0,0,0);
             telemetry.addData("target ticks", tgtTicks);
             telemetry.addData("current ticks",-backRight.getCurrentPosition());
+            telemetry.addData("avg loop time", totalLoopTime/loopCounter);
             telemetry.update();
     }
 

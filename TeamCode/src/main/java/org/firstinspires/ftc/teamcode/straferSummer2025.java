@@ -21,38 +21,29 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class straferSummer2025 extends LinearOpMode {
 
-    private final DcMotor frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
-    private final DcMotor frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-
-    private final DcMotor backLeft = hardwareMap.get(DcMotor.class, "backLeft");
-    private final DcMotor backRight = hardwareMap.get(DcMotor.class, "backRight");
-
-    private final DistanceSensor backRightDistance = hardwareMap.get(DistanceSensor.class, "backRightDistance");
-    private final DistanceSensor backLeftDistance = hardwareMap.get(DistanceSensor.class, "backLeftDistance");
-
     private final ElapsedTime runtime = new ElapsedTime(ElapsedTime.Resolution.MILLISECONDS);
 
 
 
     private void setMotorPower( final double pFL, final double pBL, final double pFR, final double pBR){
             hardwareMap.dcMotor.get("frontLeft").setPower(pFL);
-            hardwareMap.dcMotor.get("backLeft").setPower(pBL);
-            hardwareMap.dcMotor.get("frontRight").setPower(pFR);
             hardwareMap.dcMotor.get("backRight").setPower(pBR);
+            hardwareMap.dcMotor.get("frontRight").setPower(pFR);
+            hardwareMap.dcMotor.get("backLeft").setPower(pBL);
         }
 
-    private void setHardware() {
-
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
-        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
-    }
+//    private void setHardware() {
+//
+//        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+//
+//        frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+//        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+//        frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
+//        backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+//    }
 
 
     private Servo initializeServo(){
@@ -75,7 +66,7 @@ public class straferSummer2025 extends LinearOpMode {
 
 
 
-    private void distanceSensorDriveBack(double tgtDistanceFromObject) {
+    private void distanceSensorDriveBack(double tgtDistanceFromObject, DistanceSensor backRightDistance, DistanceSensor backLeftDistance) {
 
             double motorPower = 0;
             double i = 0;
@@ -147,17 +138,19 @@ public class straferSummer2025 extends LinearOpMode {
             setMotorPower(0,0,0,0);
         }
 
-        public static final double inchToTick = 537.7/(3.14159265358*3.75);
+//        public static final double inchToTick = 537.7/(3.14159265358*3.77); for motor encoders
+        public static final double inchToTick = 505; //for dead wheel
 
 
-        private void encoderDriveForward(double forwardIN){
-            int startingTicks = (frontLeft.getCurrentPosition()+frontRight.getCurrentPosition())/2;
+        private void encoderDriveForward(double forwardIN,DcMotor frontRight, DcMotor frontLeft, DcMotor backRight){
+//            int startingTicks = (frontLeft.getCurrentPosition()+frontRight.getCurrentPosition())/2;
+            int startingTicks = -backRight.getCurrentPosition();
             //537.7 ticks/rotation, wheel diameter 3.75 inches
             //(547.7 ticks/rotation)*(1 rotation/pi*3.75 inches) = 45.6 ticks/inch
             int deltaTicks = (int) (forwardIN * inchToTick);
             int tgtTicks = startingTicks+deltaTicks;
 
-            final double k_p = 0.003;
+            final double k_p = 0.0004;
 //            double i = 0;
 //            double k_i = 0;
 //            double max_i = 0;
@@ -167,20 +160,29 @@ public class straferSummer2025 extends LinearOpMode {
 //            int prevError = (startingTicks-tgtTicks)/2;
             double prevMotorPower = 1;
             double prevTime = runtime.time();
-            final double allowedError = 25;
+            final double allowedError = 100;
+            int atTgtCounter = 0;
 
             while (true){
 //                current_time = runtime.time();
 //                double delta_time = current_time - prevTime;
-                int currentError = (frontLeft.getCurrentPosition()+frontRight.getCurrentPosition())/2-tgtTicks;
+//                int currentError = (frontLeft.getCurrentPosition()+frontRight.getCurrentPosition())/2-tgtTicks;
+                int currentError = -backRight.getCurrentPosition()-tgtTicks;
 
-                if (Math.abs(currentError)<allowedError && Math.abs(prevMotorPower)<0.01){
-                    telemetry.addData("left while loop", null);
-                    telemetry.addData("absolute value current error", Math.abs(currentError));
-                    telemetry.addData("prev power", prevMotorPower);
-                    telemetry.update();
+                if (Math.abs(currentError)<allowedError){ //&& Math.abs(prevMotorPower)<0.01){
+                    atTgtCounter += 1;
+                }else{
+                    atTgtCounter = 0;}
+                if (atTgtCounter>=5){
+                    telemetry.addData("target ticks", tgtTicks);
+                    telemetry.addData("current ticks",-backRight.getCurrentPosition());
                     break;
                 }
+
+                if (gamepad1.b){
+                    break;
+                }
+
 
                 double p = k_p * currentError;
 //                    i += k_i * (currentError * (delta_time));
@@ -211,6 +213,12 @@ public class straferSummer2025 extends LinearOpMode {
 //                    prevTime = current_time;
                     prevMotorPower = motorPower;
 
+                    telemetry.addData("absolute value current error", Math.abs(currentError));
+                    telemetry.addData("prev power", prevMotorPower);
+                    telemetry.addData("target ticks", tgtTicks);
+                    telemetry.addData("current ticks",-backRight.getCurrentPosition());
+                    telemetry.update();
+
 
 //                if (currentError<-45){
 //                    setMotorPower(0.3,0.3,0.3,0.3);
@@ -222,6 +230,9 @@ public class straferSummer2025 extends LinearOpMode {
 //                    break;
                 }
             setMotorPower(0,0,0,0);
+            telemetry.addData("target ticks", tgtTicks);
+            telemetry.addData("current ticks",-backRight.getCurrentPosition());
+            telemetry.update();
     }
 
 
@@ -232,7 +243,28 @@ public class straferSummer2025 extends LinearOpMode {
         @Override
         public void runOpMode() throws InterruptedException {
 
-            setHardware();
+
+            final DcMotor frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
+            final DcMotor frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+
+            final DcMotor backLeft = hardwareMap.get(DcMotor.class, "backLeft");
+            final DcMotor backRight = hardwareMap.get(DcMotor.class, "backRight");
+
+            final DistanceSensor backRightDistance = hardwareMap.get(DistanceSensor.class, "backRightDistance");
+            final DistanceSensor backLeftDistance = hardwareMap.get(DistanceSensor.class, "backLeftDistance");
+
+            frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+            frontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+            backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+            frontRight.setDirection(DcMotorSimple.Direction.FORWARD);
+            backRight.setDirection(DcMotorSimple.Direction.FORWARD);
+
+
+//            setHardware();
 
             IMU imu = initializeIMU();
 
@@ -276,9 +308,9 @@ public class straferSummer2025 extends LinearOpMode {
 
 
                 if (gamepad1.a) {
-                    encoderDriveForward(48);
+                    encoderDriveForward(48,frontRight,frontLeft,backRight);
                 } else if (gamepad1.y) {
-                    distanceSensorDriveBack(12);
+                    distanceSensorDriveBack(12,backRightDistance,backLeftDistance);
                 } else if (gamepad1.options) {
                     imu.resetYaw();
                 } else if (gamepad1.b) {
